@@ -4,3 +4,9 @@
 
 *for routing*
 **npm install react-router-dom**
+
+
+*for form*
+**npm i formik**
+
+**npm i react-hot-toast**
