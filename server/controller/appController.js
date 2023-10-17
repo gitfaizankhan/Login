@@ -1,4 +1,4 @@
-
+import UserModel from "../model/User.model.js";
 
 /** POST: http://localhost:8080/api/register
  * @param :{
@@ -13,7 +13,39 @@
 }
  */
 export async function register(req, res){
-   res.json('register route'); 
+   try{
+    const {username, password, profile, email} = req.body;
+    
+    // check the existing user
+    const existUsername = new Promise((resolve, reject)=>{
+        UserModel.findOne({username}, function (err, user){
+            if(err) reject(new Error(err));
+            if(user) reject({ error:"Please use unique username"});
+            resolve();
+        })
+    })
+
+    // check the existing email
+       const existEmail = new Promise((resolve, reject) => {
+           UserModel.findOne({ email }, function (err, email) {
+               if (err) reject(new Error(err));
+               if (email) reject({ error: "Please use unique email " });
+               resolve();
+           })
+       })
+
+       Promise.all([existUsername, existEmail])
+        .then({
+
+        }).catch(error=>{
+            return res.status(500).send({
+                error: "Enable to hashed password"
+            })
+        })
+    
+   }catch(error) {
+    return res.status(500).send(error);
+   } 
 }
 
 
