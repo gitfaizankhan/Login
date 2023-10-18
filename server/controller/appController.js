@@ -1,4 +1,7 @@
+import { rejects } from "assert";
 import UserModel from "../model/User.model.js";
+import bcrypt from 'bcrypt';
+
 
 /** POST: http://localhost:8080/api/register
  * @param :{
@@ -13,39 +16,124 @@ import UserModel from "../model/User.model.js";
 }
  */
 export async function register(req, res){
-   try{
-    const {username, password, profile, email} = req.body;
-    
-    // check the existing user
-    const existUsername = new Promise((resolve, reject)=>{
-        UserModel.findOne({username}, function (err, user){
-            if(err) reject(new Error(err));
-            if(user) reject({ error:"Please use unique username"});
-            resolve();
-        })
-    })
+    try{
+        const { username, password, profile, email } = req.body;
+            // check the existing user
+            // const existUsername = new Promise((resolve, reject)=>{
+            //     UserModel.findOne({username}, function (err, user){
+            //         if(err) reject(new Error(err));
+            //         if(user) reject({ error:"Please use unique username"});
+            //         resolve();
+            //     })
+            // })
+        // Check if the user already exists
+        // const checkUserExists = async (username) => {
+        //     try {
+        //         const user = await UserModel.findOne({ username });
+        //         if (user) {
+        //             throw { error: "Please use a unique username" };
+        //         }
+        //     } catch (error) {
+        //         throw new Error(error);
+        //     }
+        // };
 
-    // check the existing email
-       const existEmail = new Promise((resolve, reject) => {
-           UserModel.findOne({ email }, function (err, email) {
-               if (err) reject(new Error(err));
-               if (email) reject({ error: "Please use unique email " });
-               resolve();
-           })
-       })
+        // // Usage
+        // try {
+        //     await checkUserExists(username);
+        //     // Username is unique, continue with registration
+        // } catch (error) {
+        //     console.error(error);
+        // }
 
-       Promise.all([existUsername, existEmail])
-        .then({
+        const checkUserExists = (username) => {
+            return new Promise((resolve, reject) => {
+                UserModel.findOne({ username }, (err, user) => {
+                    if (err) {
+                        reject(new Error(err));
+                    } else if (user) {
+                        reject({ error: "Please use a unique username" });
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        };
 
-        }).catch(error=>{
-            return res.status(500).send({
-                error: "Enable to hashed password"
+        const existEmail = (email) =>{
+            return new Promise((resolve, reject) =>{
+                UserModel.findOne({ email}, (err, user) =>{
+                    if(err) {
+                        reject(new Error(err));
+                    } else if(user) {
+                        reject({ error:"Please use unique email "});
+                    }else {
+                        resolve()
+                    }
+                })
             })
-        })
+        }
+        Promise.all([checkUserExists, existEmail])
+            .then(() =>{
+                if (password) {
+                    bcrypt.hash(password, 10)
+                        .then(hashedPassword => {
+
+                            const user = new UserModel({
+                                username,
+                                password: hashedPassword,
+                                profile: profile || '',
+                                email
+                            });
+
+                            // return save result as a response
+                            user.save()
+                                .then(result => res.status(201).send({ msg: "User Register Successfully" }))
+                                .catch(error => res.status(500).send({ error}))
+
+                        }).catch(error => {
+                            return res.status(500).send({
+                                error: "Enable to hashed password"
+                            })
+                        })
+                }
+            })
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+//    try{
+//     const {username, password, profile, email} = req.body;
     
-   }catch(error) {
-    return res.status(500).send(error);
-   } 
+//     // check the existing user
+//     // const existUsername = new Promise((resolve, reject)=>{
+//     //     UserModel.findOne({username}, function (err, user){
+//     //         if(err) reject(new Error(err));
+//     //         if(user) reject({ error:"Please use unique username"});
+//     //         resolve();
+//     //     })
+//     // })
+
+//     // check the existing email
+//     //    const existEmail = new Promise((resolve, reject) => {
+//     //        UserModel.findOne({ email }, function (err, email) {
+//     //            if (err) reject(new Error(err));
+//     //            if (email) reject({ error: "Please use unique email " });
+//     //            resolve();
+//     //        })
+//     //    })
+       
+//     //    Promise.all([existUsername, existEmail])
+//     //     .then({
+
+//     //     }).catch(error=>{
+//     //         return res.status(500).send({
+//     //             error: "Enable to hashed password"
+//     //         })
+//     //     })
+    
+//    }catch(error) {
+//     return res.status(500).send(error);
+//    } 
 }
 
 
