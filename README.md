@@ -10,3 +10,6 @@
 **npm i formik**
 
 **npm i react-hot-toast**
+
+
+**openssl rand -base64 32**

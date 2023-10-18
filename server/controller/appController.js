@@ -1,6 +1,25 @@
-import { rejects } from "assert";
 import UserModel from "../model/User.model.js";
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import ENV from "../config.js";
+
+
+
+
+// Middleware for verify user
+export async function verifyUser(req, res, next){
+    try{
+        const {username}  = req.method = "GET" ? req.query : req.body;
+
+        // check the user existance
+        let exist = await UserModel.findOne({ username });
+        if(!exist) return res.status(404).send({ error: "Can't find User!"});
+        next();
+    }catch(error) {
+        return res.status(404).send({error : "Authentication Error"});
+    }
+} 
+
 
 
 /** POST: http://localhost:8080/api/register
@@ -18,35 +37,7 @@ import bcrypt from 'bcrypt';
 export async function register(req, res){
     try{
         const { username, password, profile, email } = req.body;
-            // check the existing user
-            // const existUsername = new Promise((resolve, reject)=>{
-            //     UserModel.findOne({username}, function (err, user){
-            //         if(err) reject(new Error(err));
-            //         if(user) reject({ error:"Please use unique username"});
-            //         resolve();
-            //     })
-            // })
-        // Check if the user already exists
-        // const checkUserExists = async (username) => {
-        //     try {
-        //         const user = await UserModel.findOne({ username });
-        //         if (user) {
-        //             throw { error: "Please use a unique username" };
-        //         }
-        //     } catch (error) {
-        //         throw new Error(error);
-        //     }
-        // };
-
-        // // Usage
-        // try {
-        //     await checkUserExists(username);
-        //     // Username is unique, continue with registration
-        // } catch (error) {
-        //     console.error(error);
-        // }
-
-        const checkUserExists = (username) => {
+            const checkUserExists = (username) => {
             return new Promise((resolve, reject) => {
                 UserModel.findOne({ username }, (err, user) => {
                     if (err) {
@@ -101,39 +92,6 @@ export async function register(req, res){
     } catch (error) {
         return res.status(500).send(error);
     }
-//    try{
-//     const {username, password, profile, email} = req.body;
-    
-//     // check the existing user
-//     // const existUsername = new Promise((resolve, reject)=>{
-//     //     UserModel.findOne({username}, function (err, user){
-//     //         if(err) reject(new Error(err));
-//     //         if(user) reject({ error:"Please use unique username"});
-//     //         resolve();
-//     //     })
-//     // })
-
-//     // check the existing email
-//     //    const existEmail = new Promise((resolve, reject) => {
-//     //        UserModel.findOne({ email }, function (err, email) {
-//     //            if (err) reject(new Error(err));
-//     //            if (email) reject({ error: "Please use unique email " });
-//     //            resolve();
-//     //        })
-//     //    })
-       
-//     //    Promise.all([existUsername, existEmail])
-//     //     .then({
-
-//     //     }).catch(error=>{
-//     //         return res.status(500).send({
-//     //             error: "Enable to hashed password"
-//     //         })
-//     //     })
-    
-//    }catch(error) {
-//     return res.status(500).send(error);
-//    } 
 }
 
 
@@ -144,7 +102,35 @@ export async function register(req, res){
 }
  */
 export async function login(req, res) {
-    res.json('login route');
+    const {username, password} = req.body;
+    try{
+        UserModel.findOne({username})
+            .then( user =>{
+                bcrypt.compare(password, user.password)
+                    .then( passwordCheck =>{
+                        if(!passwordCheck) return res.status(400).send({ error: "Don't have Password"});
+                        
+                        // create jwt token
+                        const token = jwt.sign({
+                                userId: user._id,
+                                username: user.username 
+                        }, ENV.JWT_SECRET, {expiresIn:"24h"});
+                        return res.status(200).send({
+                            msg:"Login Successful...!",
+                            username: user.username,
+                            token
+                        });
+                    })
+                    .catch( error =>{
+                        return res.status(400).send({ error: "Password does not Match"});
+                    })
+            })
+            .catch( error =>{
+                return res.status(406).send({error:"Username not found"});
+            })
+    }catch(error){
+        return res.status(500).send({error});
+    }
 }
 
 /** GET: http://localhost:8080/api/user/example123 */

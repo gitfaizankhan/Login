@@ -21,7 +21,7 @@ router.route('/authenticate').post((req, res)=> res.end());
 
 
 // login in app
-router.route('/login').post(controller.login);
+router.route('/login').post(controller.verifyUser , controller.login);
 
 
 //********************GET Method********************
