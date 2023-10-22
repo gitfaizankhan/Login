@@ -9,8 +9,7 @@ import ENV from "../config.js";
 // Middleware for verify user
 export async function verifyUser(req, res, next){
     try{
-        const {username}  = req.method = "GET" ? req.query : req.body;
-
+        const username = req.method === "GET" ? req.query.username : req.body.username;
         // check the user existance
         let exist = await UserModel.findOne({ username });
         if(!exist) return res.status(404).send({ error: "Can't find User!"});
@@ -135,7 +134,19 @@ export async function login(req, res) {
 
 /** GET: http://localhost:8080/api/user/example123 */
 export async function getUser(req, res) {
-    res.json('getUser route');
+    const { username } = req.params;
+
+    try {
+        if (!username) return res.status(501).send({ error: "Invalid Username" });
+
+        const user = await UserModel.findOne({ username });
+
+        if (!user) return res.status(501).send({ error: "Couldn't find the User" });
+
+        return res.status(201).send({ user });
+    } catch (error) {
+        return res.status(406).send({ error: error.message });
+    }
 }
 
 /** PUT: http://localhost:8080/api/updateuser
