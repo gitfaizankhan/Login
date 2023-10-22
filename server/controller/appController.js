@@ -142,8 +142,8 @@ export async function getUser(req, res) {
         const user = await UserModel.findOne({ username });
 
         if (!user) return res.status(501).send({ error: "Couldn't find the User" });
-
-        return res.status(201).send({ user });
+        const { password, ...rest} = Object.assign({}, user.toJSON());
+        return res.status(201).send({ rest });
     } catch (error) {
         return res.status(406).send({ error: error.message });
     }
